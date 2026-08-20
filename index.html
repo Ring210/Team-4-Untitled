@@ -1,12 +1,874 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEllo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>職員室 在室状況マップ</title>
+  <style>
+    :root {
+      --bg-present: #4CAF50;
+      --bg-absent: #f44336;
+      --bg-meeting: #FF9800;
+      --bg-busy: #9C27B0;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: sans-serif;
+      background-color: #1a2226;
+      color: #fff;
+    }
+
+    /* 上部操作バー */
+    .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: #263238;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      box-sizing: border-box;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .top-bar h1 {
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .controls input, .controls button {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      border: 1px solid #455a64;
+      border-radius: 4px;
+      background: #37474f;
+      color: #fff;
+    }
+
+    .controls button {
+      background: #007bff;
+      cursor: pointer;
+      font-weight: bold;
+      border: none;
+    }
+
+    /* 無限キャンバス */
+    .viewport {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      width: 100vw;
+      height: calc(100vh - 60px);
+      cursor: grab;
+      overflow: hidden;
+      background-image: radial-gradient(#37474f 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .viewport:active {
+      cursor: grabbing;
+    }
+
+    .canvas-world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+    }
+
+    /* 先生カード */
+    .teacher-card {
+      position: absolute;
+      background-color: #263238;
+      border: 2px solid #455a64;
+      border-radius: 8px;
+      padding: 12px;
+      width: 140px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .teacher-card.dragging {
+      opacity: 0.7;
+      border-color: #007bff;
+      box-shadow: 0 8px 20px rgba(0,123,255,0.4);
+    }
+
+    .teacher-name {
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.1);
+      width: 90%;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .teacher-name:hover {
+      background: #007bff;
+      color: #fff;
+    }
+
+    /* 左上：ステータスランプ */
+    .status-lamp {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    }
+
+    .status-lamp.present { background-color: var(--bg-present); }
+    .status-lamp.absent { background-color: var(--bg-absent); }
+    .status-lamp.meeting { background-color: var(--bg-meeting); }
+    .status-lamp.busy { background-color: var(--bg-busy); }
+
+    /* 右上：削除ボタン */
+    .delete-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: none;
+      border: none;
+      color: #b0bec5;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .delete-btn:hover { color: #ff5252; }
+
+    /* 呼び出し確認画面（生徒用） */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .call-box {
+      background: #263238;
+      border: 2px solid #007bff;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,123,255,0.3);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .call-box h2 {
+      margin-top: 0;
+      font-size: 1.8rem;
+      color: #64b5f6;
+    }
+
+    .call-btn {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+      font-size: 1.4rem;
+      font-weight: bold;
+      border: none;
+      padding: 20px 40px;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,123,255,0.5);
+      transition: transform 0.1s;
+      margin-top: 20px;
+    }
+
+    .call-btn:active {
+      transform: scale(0.95);
+    }
+
+    .close-modal-btn {
+      margin-top: 15px;
+      background: #455a64;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .close-modal-btn:hover {
+      background: #546e7a;
+    }
+
+    /* 先生専用 十字操作画面 */
+    .teacher-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #12181b;
+      z-index: 3000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 30px 20px;
+      box-sizing: border-box;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .teacher-screen.active {
+      display: flex;
+    }
+
+    .teacher-screen.calling {
+      animation: alertFlash 0.8s infinite alternate;
+    }
+
+    @keyframes alertFlash {
+      from { background-color: #12181b; }
+      to { background-color: #b71c1c; }
+    }
+
+    .screen-header {
+      text-align: center;
+    }
+
+    .screen-header h1 {
+      font-size: 1.8rem;
+      margin: 0 0 8px 0;
+      color: #cfd8dc;
+    }
+
+    .screen-header p {
+      color: #90a4ae;
+      font-size: 0.85rem;
+      margin: 0;
+    }
+
+    /* 手書き枠線ベースの枠＆ガイド構造 */
+    .cross-menu-wrapper {
+      position: relative;
+      padding: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 36px;
+      background: rgba(38, 50, 56, 0.5);
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+    }
+
+    .cross-menu {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 十字の直線・半円ガイドライン（SVG描画） */
+    .guide-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* 5箇所のスポットノード */
+    .cross-node {
+      position: absolute;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      border: 2px solid rgba(255,255,255,0.3);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      z-index: 1;
+    }
+
+    .cross-node.active {
+      transform: scale(1.08);
+      border-color: #ffffff;
+      box-shadow: 0 0 20px rgba(255,255,255,0.8);
+    }
+
+    /* 配置（中央 + 上下左右） */
+    .node-center  { top: 108px; left: 108px; background-color: #37474f; border-color: rgba(255,255,255,0.4); } /* 中央 */
+    .node-top     { top: 0; left: 108px; background-color: var(--bg-present); }    /* 上 */
+    .node-left    { top: 108px; left: 0; background-color: var(--bg-absent); }     /* 左 */
+    .node-bottom  { bottom: 0; left: 108px; background-color: var(--bg-meeting); }  /* 下 */
+    .node-right   { top: 108px; right: 0; background-color: var(--bg-busy); }     /* 右 */
+
+    /* スライドする丸ノブ */
+    .center-knob {
+      position: absolute;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #12181b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.95rem;
+      box-shadow: 0 0 18px rgba(255,255,255,0.7);
+      cursor: grab;
+      z-index: 10;
+      border: 4px solid #12181b;
+      transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .center-knob.dragging {
+      cursor: grabbing;
+      transition: none;
+    }
+
+    .screen-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .stop-alarm-btn {
+      background: #ff9800;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 30px;
+      cursor: pointer;
+      display: none;
+      box-shadow: 0 0 15px rgba(255,152,0,0.6);
+    }
+
+    .guide-text {
+      position: absolute;
+      bottom: 15px;
+      left: 15px;
+      background: rgba(0,0,0,0.6);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      pointer-events: none;
+      color: #b0bec5;
+    }
+  </style>
 </head>
 <body>
-    <h1>Hello World!</h1>
-    <h1>dekitaka?</h1>
+
+  <!-- 上部バー -->
+  <div class="top-bar">
+    <h1>職員室 在室状況マップ</h1>
+    <div class="controls">
+      <input type="text" id="teacherNameInput" placeholder="先生の名前">
+      <button onclick="addTeacher()">先生を追加</button>
+      <button onclick="resetView()">視点リセット</button>
+    </div>
+  </div>
+
+  <!-- マップ画面 -->
+  <div class="viewport" id="viewport">
+    <div class="canvas-world" id="canvasWorld"></div>
+  </div>
+
+  <div class="guide-text">
+    【生徒用操作】名前をクリック ➔ 呼び出し画面<br>
+    【先生用設定】カードをダブルクリック ➔ 十字スライド操作画面へ
+  </div>
+
+  <!-- 1. 呼び出し確認画面（生徒用） -->
+  <div class="modal-overlay" id="callModal">
+    <div class="call-box">
+      <h2 id="targetTeacherName">〇〇 先生</h2>
+      <p>下のボタンを押すと、先生の端末へ呼び出し通知が届きます。</p>
+      <button class="call-btn" onclick="triggerCall()">🔔 呼び出す</button>
+      <br>
+      <button class="close-modal-btn" onclick="closeModal()">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- 2. 先生専用 十字操作画面 -->
+  <div class="teacher-screen" id="teacherScreen">
+    <div class="screen-header">
+      <h1 id="teacherDisplayTitle">先生用 端末</h1>
+      <p>白いボタンを移動させたい位置へスライドしてください</p>
+    </div>
+
+    <div class="cross-menu-wrapper">
+      <div class="cross-menu" id="crossMenu">
+        <!-- 手書き構成をきれいにした直線・ガイドSVG -->
+        <svg class="guide-svg" viewBox="0 0 300 300">
+          <line x1="150" y1="42" x2="150" y2="258" stroke="rgba(255,255,255,0.25)" stroke-width="3" stroke-dasharray="4 4" />
+          <line x1="42" y1="150" x2="258" y2="150" stroke="rgba(255,255,255,0.25)" stroke-width="3" stroke-dasharray="4 4" />
+          <circle cx="150" cy="150" r="108" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
+        </svg>
+
+        <!-- 5箇所の固定スポット -->
+        <div class="cross-node node-center" id="node-none">未設定</div>
+        <div class="cross-node node-top" id="node-present">在室</div>
+        <div class="cross-node node-left" id="node-absent">離席</div>
+        <div class="cross-node node-bottom" id="node-meeting">会議中</div>
+        <div class="cross-node node-right" id="node-busy">質問不可</div>
+
+        <!-- 操作用丸ノブ -->
+        <div class="center-knob" id="centerKnob">●</div>
+      </div>
+    </div>
+
+    <div class="screen-footer">
+      <button class="stop-alarm-btn" id="stopAlarmBtn" onclick="stopCallSound()">🔔 呼び出しを止める</button>
+      <button class="close-modal-btn" onclick="exitTeacherScreen()">マップに戻る</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBI0hxd3PiTKrTASawXb_HHe626GcpJEiA",
+      authDomain: "fbhkvvaidvsgyiv.firebaseapp.com",
+      databaseURL: "https://fbhkvvaidvsgyiv-default-rtdb.firebaseio.com",
+      projectId: "fbhkvvaidvsgyiv",
+      storageBucket: "fbhkvvaidvsgyiv.firebasestorage.app",
+      messagingSenderId: "675511691664",
+      appId: "1:675511691664:web:74b4160a63f965aae16b15"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let teachers = [];
+    const statusLabels = { none: "未設定", present: "在室", absent: "離席", meeting: "会議中", busy: "質問不可" };
+
+    // 5箇所のオフセット位置
+    const fixedPositions = {
+      none:    { x: 0, y: 0 },       // 中央
+      present: { x: 0, y: -108 },    // 上
+      absent:  { x: -108, y: 0 },    // 左
+      meeting: { x: 0, y: 108 },     // 下
+      busy:    { x: 108, y: 0 }      // 右
+    };
+
+    let currentTargetTeacher = null;
+    let selectedTeacherForScreen = null;
+    let alarmInterval = null;
+    let isInitialCallLoad = true;
+
+    // Web Audio API
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playChimeSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, now + idx * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.15);
+        osc.stop(now + idx * 0.15 + 0.4);
+      });
+    }
+
+    // --- Firebase ---
+
+    onValue(ref(db, 'teachers'), (snapshot) => {
+      const data = snapshot.val();
+      teachers = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+      render();
+
+      if (selectedTeacherForScreen) {
+        const current = teachers.find(t => t.id === selectedTeacherForScreen.id);
+        if (current) {
+          selectedTeacherForScreen = current;
+          snapKnobToStatus(selectedTeacherForScreen.status);
+        }
+      }
+    });
+
+    onValue(ref(db, 'calls'), (snapshot) => {
+      if (isInitialCallLoad) {
+        isInitialCallLoad = false;
+        return;
+      }
+      const data = snapshot.val();
+      if (!data) return;
+
+      const keys = Object.keys(data);
+      const latestCall = data[keys[keys.length - 1]];
+
+      if (document.getElementById('teacherScreen').classList.contains('active')) {
+        if (!selectedTeacherForScreen || selectedTeacherForScreen.id === latestCall.teacherId) {
+          startCallAlert();
+        }
+      }
+    });
+
+    // --- 操作ロジック ---
+
+    window.addTeacher = function() {
+      const input = document.getElementById('teacherNameInput');
+      const name = input.value.trim();
+      if (!name) return;
+
+      const spawnX = (-panX + viewport.clientWidth / 2) / scale - 70;
+      const spawnY = (-panY + viewport.clientHeight / 2) / scale - 35;
+
+      const newRef = push(ref(db, 'teachers'));
+      set(newRef, { name: name, status: 'present', x: spawnX, y: spawnY });
+      input.value = '';
+    };
+
+    window.removeTeacher = function(id) {
+      remove(ref(db, `teachers/${id}`));
+    };
+
+    function updateTeacherInDB(teacher) {
+      set(ref(db, `teachers/${teacher.id}`), {
+        name: teacher.name,
+        status: teacher.status,
+        x: teacher.x,
+        y: teacher.y
+      });
+    }
+
+    function snapKnobToStatus(status) {
+      const targetStatus = fixedPositions[status] ? status : 'none';
+      const pos = fixedPositions[targetStatus];
+      
+      const centerKnob = document.getElementById('centerKnob');
+      centerKnob.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+      centerKnob.textContent = statusLabels[targetStatus];
+
+      document.querySelectorAll('.cross-node').forEach(node => node.classList.remove('active'));
+      const activeNode = document.getElementById(`node-${targetStatus}`);
+      if (activeNode) activeNode.classList.add('active');
+
+      if (selectedTeacherForScreen && selectedTeacherForScreen.status !== targetStatus) {
+        selectedTeacherForScreen.status = targetStatus;
+        updateTeacherInDB(selectedTeacherForScreen);
+      }
+    }
+
+    window.openCallModal = function(teacher) {
+      currentTargetTeacher = teacher;
+      document.getElementById('targetTeacherName').textContent = teacher.name + ' 先生';
+      document.getElementById('callModal').classList.add('active');
+    };
+
+    window.closeModal = function() {
+      document.getElementById('callModal').classList.remove('active');
+      currentTargetTeacher = null;
+    };
+
+    window.triggerCall = function() {
+      if (!currentTargetTeacher) return;
+      push(ref(db, 'calls'), {
+        teacherId: currentTargetTeacher.id,
+        teacherName: currentTargetTeacher.name,
+        timestamp: Date.now()
+      });
+      alert(currentTargetTeacher.name + ' 先生を呼び出しました！');
+      closeModal();
+    };
+
+    window.openTeacherScreen = function(teacher) {
+      selectedTeacherForScreen = teacher;
+      const screen = document.getElementById('teacherScreen');
+      const title = document.getElementById('teacherDisplayTitle');
+      title.textContent = teacher ? `${teacher.name} 先生` : "先生用 端末";
+      snapKnobToStatus(teacher ? teacher.status : 'present');
+      screen.classList.add('active');
+    };
+
+    window.exitTeacherScreen = function() {
+      stopCallSound();
+      document.getElementById('teacherScreen').classList.remove('active');
+      selectedTeacherForScreen = null;
+    };
+
+    function startCallAlert() {
+      const screen = document.getElementById('teacherScreen');
+      screen.classList.add('calling');
+      document.getElementById('stopAlarmBtn').style.display = 'block';
+
+      playChimeSound();
+      if (alarmInterval) clearInterval(alarmInterval);
+      alarmInterval = setInterval(playChimeSound, 1200);
+    }
+
+    window.stopCallSound = function() {
+      if (alarmInterval) clearInterval(alarmInterval);
+      const screen = document.getElementById('teacherScreen');
+      screen.classList.remove('calling');
+      document.getElementById('stopAlarmBtn').style.display = 'none';
+    };
+
+    // --- 滑らかなスライド ＆ 5箇所スナップ ---
+    const centerKnob = document.getElementById('centerKnob');
+    let isDraggingKnob = false;
+    let startX = 0, startY = 0;
+    let basePos = { x: 0, y: 0 };
+    let currentHoverStatus = 'none';
+
+    function handleStart(e) {
+      isDraggingKnob = true;
+      centerKnob.classList.add('dragging');
+      
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      startX = clientX;
+      startY = clientY;
+      
+      const currentStatus = selectedTeacherForScreen ? selectedTeacherForScreen.status : 'none';
+      basePos = { ...(fixedPositions[currentStatus] || fixedPositions.none) };
+      currentHoverStatus = currentStatus;
+    }
+
+    function handleMove(e) {
+      if (!isDraggingKnob) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+
+      const currX = basePos.x + dx;
+      const currY = basePos.y + dy;
+
+      centerKnob.style.transform = `translate(${currX}px, ${currY}px)`;
+
+      let minDistance = Infinity;
+      let closestStatus = 'none';
+
+      for (const [status, pos] of Object.entries(fixedPositions)) {
+        const dist = Math.sqrt((currX - pos.x) ** 2 + (currY - pos.y) ** 2);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestStatus = status;
+        }
+      }
+
+      if (closestStatus !== currentHoverStatus) {
+        currentHoverStatus = closestStatus;
+        document.querySelectorAll('.cross-node').forEach(node => node.classList.remove('active'));
+        const activeNode = document.getElementById(`node-${currentHoverStatus}`);
+        if (activeNode) activeNode.classList.add('active');
+      }
+    }
+
+    function handleEnd() {
+      if (!isDraggingKnob) return;
+      isDraggingKnob = false;
+      centerKnob.classList.remove('dragging');
+      snapKnobToStatus(currentHoverStatus);
+    }
+
+    centerKnob.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    centerKnob.addEventListener('touchstart', handleStart);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+
+
+    // --- 描画 ＆ 無限キャンバス操作 ---
+    let scale = 1, panX = 0, panY = 0;
+    const viewport = document.getElementById('viewport');
+    const canvasWorld = document.getElementById('canvasWorld');
+
+    function updateTransform() {
+      canvasWorld.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    window.resetView = function() {
+      scale = 1; panX = 0; panY = 0;
+      updateTransform();
+    };
+
+    function render() {
+      canvasWorld.innerHTML = '';
+
+      teachers.forEach(teacher => {
+        const card = document.createElement('div');
+        card.className = 'teacher-card';
+        card.style.left = teacher.x + 'px';
+        card.style.top = teacher.y + 'px';
+
+        card.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          openTeacherScreen(teacher);
+        });
+
+        // 削除ボタン（右上）
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.textContent = '✕';
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeTeacher(teacher.id);
+        });
+
+        // 名前ボタン
+        const nameEl = document.createElement('div');
+        nameEl.className = 'teacher-name';
+        nameEl.textContent = teacher.name;
+        nameEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCallModal(teacher);
+        });
+
+        // ステータスランプ（左上）
+        const lamp = document.createElement('div');
+        lamp.className = `status-lamp ${teacher.status}`;
+        lamp.title = statusLabels[teacher.status] || '未設定';
+
+        card.appendChild(delBtn);
+        card.appendChild(nameEl);
+        card.appendChild(lamp);
+
+        makeCardDraggable(card, teacher);
+        canvasWorld.appendChild(card);
+      });
+
+      updateTransform();
+    }
+
+    // パン・ズーム操作
+    let isPanning = false, startPanX = 0, startPanY = 0;
+
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.teacher-card')) return;
+      isPanning = true;
+      startPanX = e.clientX - panX;
+      startPanY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      panX = e.clientX - startPanX;
+      panY = e.clientY - startPanY;
+      updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => isPanning = false);
+
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = 1.1;
+      let newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
+      newScale = Math.min(Math.max(0.3, newScale), 3);
+
+      const rect = viewport.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      panX = mouseX - (mouseX - panX) * (newScale / scale);
+      panY = mouseY - (mouseY - panY) * (newScale / scale);
+      scale = newScale;
+
+      updateTransform();
+    }, { passive: false });
+
+    function makeCardDraggable(card, teacher) {
+      let isDraggingCard = false;
+      let hasMoved = false;
+      let startX, startY, initialX, initialY;
+
+      card.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('delete-btn') || 
+            e.target.classList.contains('teacher-name')) return;
+        
+        isDraggingCard = true;
+        hasMoved = false;
+        card.classList.add('dragging');
+        startX = e.clientX;
+        startY = e.clientY;
+        initialX = teacher.x;
+        initialY = teacher.y;
+
+        const onMouseMove = (e) => {
+          if (!isDraggingCard) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            hasMoved = true;
+          }
+          teacher.x = initialX + dx / scale;
+          teacher.y = initialY + dy / scale;
+          card.style.left = teacher.x + 'px';
+          card.style.top = teacher.y + 'px';
+        };
+
+        const onMouseUp = () => {
+          if (isDraggingCard) {
+            isDraggingCard = false;
+            card.classList.remove('dragging');
+            if (hasMoved) {
+              updateTeacherInDB(teacher);
+            }
+          }
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+    }
+  </script>
 </body>
 </html>
