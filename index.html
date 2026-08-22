@@ -1,12 +1,510 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEllo</title>
-</head>
-<body>
-    <h1>Hello World!</h1>
-    <h1>dekitaka?</h1>
-</body>
+<!doctype html>
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>座席表ホーム（ライトモード）</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans JP", sans-serif;
+        background-color: #f3fbf7;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        color: #161d1b;
+      }
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .status-ok {
+        background-color: #006b5a;
+      } /* Primary */
+      .status-busy {
+        background-color: #ffa557;
+      } /* Tertiary Container */
+      .status-absent {
+        background-color: #bacac4;
+      } /* Outline Variant */
+
+      @keyframes fadeScaleIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .animated-cell {
+        animation: fadeScaleIn 0.4s ease-out forwards;
+        opacity: 0;
+      }
+
+      /* Staggered animation delays for rows/columns to make it feel organic */
+      .group-1 .animated-cell:nth-child(n) {
+        animation-delay: 0.1s;
+      }
+      .group-2 .animated-cell:nth-child(n) {
+        animation-delay: 0.2s;
+      }
+      .group-3 .animated-cell:nth-child(n) {
+        animation-delay: 0.3s;
+      }
+
+      /* Grid Layout */
+      .seating-grid {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 32px;
+        margin-top: 1rem;
+      }
+      .desk-group {
+        display: grid;
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #ffffff;
+      }
+      .desk {
+        width: 128px;
+        height: 80px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-right: 1px solid #dbdbdb;
+        border-bottom: 1px solid #dbdbdb;
+        text-decoration: none;
+        color: inherit;
+        transition: background-color 0.2s ease;
+        cursor: pointer;
+      }
+      .desk:hover {
+        background-color: #f5f5f5;
+      }
+      .desk:last-child {
+        border-right: none;
+      }
+      .desk-group .desk:nth-child(even) {
+        border-right: none;
+      }
+      .group-2 .desk:nth-child(4n) {
+        border-right: none;
+      }
+      .group-3 .desk {
+        border-right: none;
+      }
+
+      .main-content {
+        flex: 1;
+        position: relative;
+        padding-bottom: 2rem;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .animate-pulse {
+        animation: pulse 2s infinite;
+      }
+
+      .custom-btn-call {
+        background-color: #006b5a;
+        color: white;
+      }
+      .custom-btn-call:hover {
+        background-color: #005143;
+        color: white;
+      }
+
+      .custom-btn-ask {
+        background-color: #005ac2;
+        color: white;
+      }
+      .custom-btn-ask:hover {
+        background-color: #004395;
+        color: white;
+      }
+
+      .footer-actions {
+        background-color: #ffffff;
+        border-top: 1px solid #dbdbdb;
+        padding: 1.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav
+      aria-label="main navigation"
+      class="navbar is-white has-shadow p-2"
+      role="navigation"
+    >
+      <div class="navbar-brand is-align-items-center">
+        <div
+          class="navbar-item is-flex is-align-items-center"
+          style="gap: 1rem; align-items: center"
+        >
+          <h1 class="title is-3 mb-0 mr-1">座席表ホーム</h1>
+          <span class="subtitle is-5 has-text-grey mb-0">Attendance</span>
+        </div>
+        <a
+          aria-expanded="false"
+          aria-label="menu"
+          class="navbar-burger"
+          data-target="navbarBasicExample"
+          role="button"
+        >
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div class="navbar-menu" id="navbarBasicExample">
+        <div class="navbar-end is-align-items-center">
+          <a class="navbar-item">スケジュール</a>
+          <a class="navbar-item">概要</a>
+          <a class="navbar-item">設定</a>
+          <div class="navbar-item">
+            <strong class="title is-3 mb-0" id="clock">11:49PM</strong>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <div
+      class="main-content section is-flex is-flex-direction-column gap-6"
+      style="
+        gap: 1rem;
+        overflow-y: auto;
+        padding-bottom: 120px;
+        padding-top: 1rem;
+      "
+    >
+      <div class="container is-flex-grow-1 is-flex is-flex-direction-column">
+        <!-- Status Summary -->
+        <div class="is-flex is-justify-content-center w-full mb-6">
+          <div
+            class="is-flex box p-0 mb-0"
+            style="max-width: 800px; width: 100%"
+          >
+            <div
+              class="is-flex-grow-1 p-4 is-flex is-flex-direction-column is-align-items-center is-justify-content-center"
+              style="border-right: 1px solid #dbdbdb"
+            >
+              <span class="has-text-grey is-size-6 mb-2">在席・応答OK</span>
+              <div class="is-flex is-align-items-center" style="gap: 0.75rem">
+                <span class="status-dot status-ok"></span>
+                <span class="title is-3 mb-0">9人</span>
+              </div>
+            </div>
+            <div
+              class="is-flex-grow-1 p-4 is-flex is-flex-direction-column is-align-items-center is-justify-content-center"
+              style="border-right: 1px solid #dbdbdb"
+            >
+              <span class="has-text-grey is-size-6 mb-2">在席・対応不可</span>
+              <div class="is-flex is-align-items-center" style="gap: 0.75rem">
+                <span class="status-dot status-busy"></span>
+                <span class="title is-3 mb-0">5人</span>
+              </div>
+            </div>
+            <div
+              class="is-flex-grow-1 p-4 is-flex is-flex-direction-column is-align-items-center is-justify-content-center"
+            >
+              <span class="has-text-grey is-size-6 mb-2">不在</span>
+              <div class="is-flex is-align-items-center" style="gap: 0.75rem">
+                <span class="status-dot status-absent"></span>
+                <span class="title is-3 mb-0">5人</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Seating Chart -->
+        <div class="seating-grid is-flex-grow-1" style="position: relative">
+          <!-- Group 1 -->
+          <div
+            class="desk-group group-1"
+            style="grid-template-columns: repeat(2, 1fr)"
+          >
+            <!-- Row 1 -->
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">佐藤T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-busy"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">鈴木T</span>
+            </a>
+            <!-- Row 2 -->
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-absent"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">高橋T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-busy"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">田中T</span>
+            </a>
+            <!-- Row 3 -->
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-absent"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">伊藤T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-absent"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">渡辺T</span>
+            </a>
+            <!-- Row 4 -->
+            <a class="desk animated-cell" href="#" style="border-bottom: none">
+              <span
+                class="status-dot status-busy"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">山本T</span>
+            </a>
+            <a class="desk animated-cell" href="#" style="border-bottom: none">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">中村T</span>
+            </a>
+          </div>
+          <!-- Group 2 -->
+          <div
+            class="desk-group group-2"
+            style="grid-template-columns: repeat(4, 1fr)"
+          >
+            <!-- Row 1 -->
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-busy"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">小林T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">加藤T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-absent"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">吉田T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">Brown T</span>
+            </a>
+            <!-- Row 2 -->
+            <a class="desk animated-cell" href="#" style="border-bottom: none">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">佐々木T</span>
+            </a>
+            <a class="desk animated-cell" href="#" style="border-bottom: none">
+              <span
+                class="status-dot status-busy"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">山口T</span>
+            </a>
+            <a class="desk animated-cell" href="#" style="border-bottom: none">
+              <span
+                class="status-dot status-absent"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">松本T</span>
+            </a>
+            <a class="desk animated-cell" href="#" style="border-bottom: none">
+              <span
+                class="status-dot status-busy"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">Smith T</span>
+            </a>
+          </div>
+          <!-- Group 3 -->
+          <div
+            class="desk-group group-3"
+            style="grid-template-columns: repeat(1, 1fr)"
+          >
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">木村T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">林T</span>
+            </a>
+            <a class="desk animated-cell" href="#">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">清水T</span>
+            </a>
+            <a class="desk animated-cell" href="#" style="border-bottom: none">
+              <span
+                class="status-dot status-ok"
+                style="position: absolute; top: 12px; left: 12px"
+              ></span>
+              <span class="is-size-4">斎藤T</span>
+            </a>
+          </div>
+          <!-- Entrance Arrows -->
+          <div
+            class="is-flex is-justify-content-space-between w-full px-6 mt-4"
+            style="
+              position: absolute;
+              bottom: 120px;
+              left: 0px;
+              right: 0px;
+              pointer-events: none;
+            "
+          >
+            <div
+              class="is-flex is-align-items-center has-text-grey animate-pulse"
+              style="pointer-events: auto"
+            >
+              <span class="has-text-grey ml-2 is-size-5"><br /></span>
+            </div>
+            <div
+              class="is-flex is-align-items-center has-text-grey animate-pulse"
+              style="pointer-events: auto"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Footer Actions -->
+    <footer
+      class="footer-actions p-6 is-flex is-justify-content-center"
+      style="
+        gap: 2rem;
+        position: fixed;
+        bottom: 0px;
+        left: 0px;
+        right: 0px;
+        z-index: 100;
+      "
+    >
+      <button
+        class="button is-large custom-btn-call is-rounded"
+        id="call-teacher"
+        style="min-width: 320px; height: 80px; border: none"
+        onclick="window.location.href = 'teacher-card.html'"
+      >
+        <span class="icon is-large mr-3"
+          ><span class="material-symbols-outlined is-size-2"
+            >notifications</span
+          ></span
+        ><span class="title is-4 has-text-white mb-0">呼び出し通知</span>
+      </button>
+      <button
+        class="button is-large custom-btn-ask is-rounded"
+        id="ask-teacher"
+        style="min-width: 320px; height: 80px; border: none"
+        onclick="window.location.href = 'teacher-card.html'"
+      >
+        <span class="icon is-large mr-3">
+          <span class="material-symbols-outlined is-size-2">help_outline</span>
+        </span>
+        <span class="title is-4 has-text-white mb-0">先生に質問</span>
+      </button>
+    </footer>
+    <script>
+      // Simple clock update
+      function updateClock() {
+        const now = new Date();
+        let hours = now.getHours();
+        let minutes = now.getMinutes();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        const strTime = hours + ":" + minutes + ampm;
+        document.getElementById("clock").textContent = strTime;
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // Navbar Burger
+      document.addEventListener("DOMContentLoaded", () => {
+        const $navbarBurgers = Array.prototype.slice.call(
+          document.querySelectorAll(".navbar-burger"),
+          0,
+        );
+        $navbarBurgers.forEach((el) => {
+          el.addEventListener("click", () => {
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
+            el.classList.toggle("is-active");
+            $target.classList.toggle("is-active");
+          });
+        });
+      });
+    </script>
+  </body>
 </html>

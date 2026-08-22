@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>先生詳細（ライトモード）</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans JP", sans-serif;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background-color: #ffffff;
+      }
+      .main-wrapper {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
+      .left-panel {
+        flex: 1;
+        overflow-y: auto;
+        border-right: 1px solid #dbdbdb;
+        background-color: #f9f9f9;
+      }
+      .right-panel {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background-color: #ffffff;
+      }
+      .seat-box {
+        border: 1px solid #dbdbdb;
+        background-color: #f5f5f5;
+        padding: 1rem;
+        position: relative;
+        border-radius: 6px;
+        text-align: center;
+      }
+      .seat-box.is-selected {
+        border: 2px solid #363636;
+        background-color: #ffffff;
+      }
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+      }
+      .dot-yellow {
+        background-color: #ffdd57;
+      }
+      .dot-gray {
+        background-color: #7a7a7a;
+      }
+      .dot-blue {
+        background-color: #3e8ed0;
+      }
+
+      @keyframes popIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.95) translateY(10px);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      .pop-in {
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+
+      .icon-svg {
+        width: 2rem;
+        height: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- BEGIN: Header -->
+    <header
+      class="level px-5 py-3 has-background-white mb-0"
+      style="border-bottom: 1px solid #dbdbdb"
+    >
+      <div class="level-left">
+        <button
+          class="button is-ghost has-text-dark is-size-5 p-0"
+          onclick="document.location.href = 'index.html'"
+        >
+          戻る
+        </button>
+      </div>
+      <div class="level-right">
+        <div class="is-size-5 has-text-weight-medium has-text-grey-dark">
+          9:41AM
+        </div>
+      </div>
+    </header>
+    <!-- END: Header -->
+    <!-- BEGIN: MainContent -->
+    <main class="main-wrapper">
+      <!-- BEGIN: LeftPanel - Seating Chart -->
+      <section
+        class="left-panel p-6 is-flex is-align-items-center is-justify-content-center"
+      >
+        <div class="container is-max-desktop is-fullwidth">
+          <div class="columns is-mobile is-multiline">
+            <!-- Seat 1 (Selected) -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box is-selected shadow"
+                style="border-color: #4a4a4a; background-color: #ffffff"
+              >
+                <div
+                  class="status-dot dot-yellow"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5 has-text-weight-bold">田中T</span>
+              </div>
+            </div>
+            <!-- Seat 2 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">佐藤T</span>
+              </div>
+            </div>
+            <!-- Seat 3 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-gray"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">鈴木T</span>
+              </div>
+            </div>
+            <!-- Seat 4 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">高橋T</span>
+              </div>
+            </div>
+            <!-- Seat 5 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-blue"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">伊藤T</span>
+              </div>
+            </div>
+            <!-- Seat 6 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">渡辺T</span>
+              </div>
+            </div>
+            <!-- Seat 7 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-yellow"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">Smith T</span>
+              </div>
+            </div>
+            <!-- Seat 8 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">中村T</span>
+              </div>
+            </div>
+            <!-- Seat 9 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-gray"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">小林T</span>
+              </div>
+            </div>
+            <!-- Seat 10 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">加藤T</span>
+              </div>
+            </div>
+            <!-- Seat 11 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">吉田T</span>
+              </div>
+            </div>
+            <!-- Seat 12 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-blue"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">Brown T</span>
+              </div>
+            </div>
+            <!-- Seat 13 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">佐々木T</span>
+              </div>
+            </div>
+            <!-- Seat 14 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-yellow"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">山口T</span>
+              </div>
+            </div>
+            <!-- Seat 15 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">松本T</span>
+              </div>
+            </div>
+            <!-- Seat 16 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">井上T</span>
+              </div>
+            </div>
+            <!-- Seat 17 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-gray"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">木村T</span>
+              </div>
+            </div>
+            <!-- Seat 18 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <span class="is-size-5">林T</span>
+              </div>
+            </div>
+            <!-- Seat 19 -->
+            <div class="column is-3-desktop is-4-tablet is-6-mobile">
+              <div
+                class="seat-box"
+                style="border-color: #dbdbdb; background-color: #e8e8e8"
+              >
+                <div
+                  class="status-dot dot-blue"
+                  style="box-shadow: 0 0 0 2px #ffffff"
+                ></div>
+                <span class="is-size-5">清水T</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- END: LeftPanel -->
+      <!-- BEGIN: RightPanel - Teacher Profile -->
+      <section class="right-panel p-6">
+        <div
+          class="container is-max-desktop"
+          style="max-width: 500px; width: 100%"
+        >
+          <!-- Name & Title -->
+          <div
+            class="content mb-6 pb-5"
+            style="border-bottom: 1px solid #dbdbdb"
+          >
+            <div class="is-flex is-align-items-baseline mb-2" style="gap: 1rem">
+              <h1
+                class="title is-1 mb-0 has-text-black"
+                style="font-size: 4rem"
+              >
+                田中先生
+              </h1>
+              <span class="subtitle is-4 has-text-grey">教員</span>
+            </div>
+            <p class="subtitle is-3 has-text-grey mt-2">Tanaka T. (Teacher)</p>
+          </div>
+          <!-- Details List -->
+          <div class="content mb-6">
+            <!-- Status -->
+            <div
+              class="is-flex is-align-items-flex-start mb-6"
+              style="gap: 1.5rem"
+            >
+              <svg
+                class="icon-svg has-text-grey-dark mt-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                ></path>
+              </svg>
+              <div>
+                <div
+                  class="is-size-4 has-text-weight-bold has-text-warning-dark mb-1"
+                >
+                  在席(取り込み中)
+                </div>
+                <div class="is-size-5 has-text-dark">呼ぶことができます</div>
+              </div>
+            </div>
+            <!-- Homeroom -->
+            <div class="is-flex is-align-items-center mb-6" style="gap: 1.5rem">
+              <svg
+                class="icon-svg has-text-grey-dark"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
+                ></path>
+              </svg>
+              <div class="is-size-4 has-text-dark">
+                <span class="has-text-weight-bold mr-2">3-5</span>ホームルーム
+              </div>
+            </div>
+            <!-- Subject -->
+            <div class="is-flex is-align-items-center mb-6" style="gap: 1.5rem">
+              <svg
+                class="icon-svg has-text-grey-dark"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                  fill-rule="evenodd"
+                ></path>
+              </svg>
+              <div class="is-size-4 has-text-dark">
+                <span class="has-text-weight-bold mr-2">数学</span>の担当
+              </div>
+            </div>
+          </div>
+          <!-- Action Button -->
+          <button
+            class="button is-primary is-large is-fullwidth has-text-weight-bold"
+            style="height: 5rem; border-radius: 12px; font-size: 2rem"
+            onclick="document.location.href = 'modal.html'"
+          >
+            <span class="icon is-medium mr-4"
+              ><svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                ></path></svg></span
+            ><span>先生に通知</span>
+          </button>
+        </div>
+      </section>
+      <!-- END: RightPanel -->
+    </main>
+    <!-- END: MainContent -->
+  </body>
+</html>
