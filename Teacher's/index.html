@@ -1,0 +1,365 @@
+<!doctype html>
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>現在のステータス</title>
+    <!-- Material Symbols -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "status-ok":
+                "#a7f3d0" /* A light mint/turquoise for the active circle background */,
+              "status-ok-border": "#10b981" /* Outline/accent for OK */,
+              "status-busy": "#ffedd5" /* Light orange for busy circle */,
+              "status-busy-border": "#f97316" /* Outline/accent for busy */,
+              "status-away": "#f3f4f6" /* Light grey for away circle */,
+              "status-away-border": "#9ca3af" /* Outline/accent for away */,
+              "track-border": "#1f2937",
+              "on-tertiary": "#ffffff",
+              "error-container": "#ffdad6",
+              "surface-variant": "#dde4e0",
+              "on-tertiary-fixed-variant": "#7f2a13",
+              "primary-fixed": "#68fadd",
+              "surface-bright":
+                "#ffffff" /* Using pure white for the background to match screenshots */,
+              "on-tertiary-container": "#74220b",
+              primary: "#006b5c",
+              "secondary-container": "#33a0fd",
+              "on-primary-container": "#00473c",
+              "primary-fixed-dim": "#44ddc1",
+              "surface-dim": "#d4dcd8",
+              "inverse-on-surface": "#ebf2ef",
+              "on-secondary-fixed": "#001d36",
+              "on-primary": "#ffffff",
+              "surface-tint": "#006b5c",
+              "secondary-fixed-dim": "#9ecaff",
+              "on-secondary-container": "#00355c",
+              "inverse-primary": "#44ddc1",
+              "on-background": "#111827",
+              "surface-container-highest": "#dde4e0",
+              secondary: "#0061a4",
+              "tertiary-fixed": "#ffdbd2",
+              "on-error": "#ffffff",
+              "on-primary-fixed-variant": "#005145",
+              "on-secondary": "#ffffff",
+              "on-surface-variant": "#4b5563",
+              "tertiary-fixed-dim": "#ffb4a1",
+              error: "#ba1a1a",
+              "on-error-container": "#93000a",
+              "on-surface": "#111827",
+              "outline-variant": "#e5e7eb",
+              "inverse-surface": "#2b3230",
+              outline: "#6c7a76",
+              surface: "#ffffff",
+              "surface-container-high": "#e3eae6",
+              "on-primary-fixed": "#00201a",
+              tertiary: "#9f4128",
+              "secondary-fixed": "#d1e4ff",
+              "surface-container": "#e8efec",
+              background: "#fafafa",
+              "surface-container-lowest": "#ffffff",
+              "primary-container": "#00bfa5",
+              "on-tertiary-fixed": "#3c0800",
+              "tertiary-container": "#fe896a",
+              "surface-container-low": "#eef5f1",
+              "on-secondary-fixed-variant": "#00497d",
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem",
+            },
+            spacing: {
+              "margin-mobile": "16px",
+              "card-padding": "20px",
+              "margin-desktop": "32px",
+              gutter: "16px",
+              unit: "8px",
+            },
+            fontFamily: {
+              "m-plus-1": ["'M PLUS 1'", "sans-serif"],
+              "noto-sans-jp": ["'Noto Sans JP'", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "M PLUS 1", sans-serif;
+        background-color: #fafafa;
+      }
+
+      .slider-text {
+        font-family: "Noto Sans JP", sans-serif;
+        font-size: 24px;
+        font-weight: 500;
+        color: #000;
+      }
+
+      .header-title {
+        font-family: "M PLUS 1", sans-serif;
+      }
+
+      /* Material Symbols Fill override */
+      .material-symbols-outlined[data-weight="fill"] {
+        font-variation-settings: "FILL" 1;
+      }
+
+      /* Fluid transition for slider handle */
+      #slider-handle {
+        transition:
+          transform 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+          background-color 0.5s ease;
+      }
+
+      /* Fixed Mobile Container */
+      .mobile-container {
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        background-color: #fafafa;
+      }
+
+      /* Top Bar Styling */
+      .top-app-bar {
+        background-color: transparent;
+        border-bottom: none;
+      }
+
+      /* Custom styling for the large status track to match screenshots */
+      .status-track {
+        width: 240px;
+        height: 600px;
+        border: 1px solid #1f2937;
+        border-radius: 120px;
+        position: relative;
+        background-color: transparent;
+        margin-top: 40px;
+      }
+
+      .status-circle {
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        border: 1px solid #1f2937;
+        position: absolute;
+        left: 9px; /* (240 - 220) / 2 - 1 for border */
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none; /* Let clicks pass through to the track buttons */
+      }
+
+      .status-button {
+        height: 33.33%;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 20;
+        position: relative;
+        border-radius: 120px;
+      }
+    </style>
+  </head>
+  <body class="text-on-background">
+    <div class="mobile-container overflow-hidden relative">
+      <!-- TopAppBar -->
+      <header
+        class="flex justify-between items-center w-full px-margin-mobile h-16 top-app-bar z-10 pt-4"
+      >
+        <div
+          class="flex flex-col items-center justify-center cursor-pointer text-on-surface-variant hover:opacity-80"
+        >
+          <span
+            class="material-symbols-outlined text-[28px]"
+            data-icon="history"
+            >history</span
+          >
+          <a href="history.html"
+            ><span class="text-[10px] font-m-plus-1 leading-tight mt-1"
+              >入退室の<br />履歴</span
+            ></a
+          >
+        </div>
+        <div class="flex items-center justify-center">
+          <div class="flex flex-col items-center">
+            <span
+              class="material-symbols-outlined text-outline text-[28px]"
+              data-icon="badge"
+              >badge</span
+            >
+            <span class="font-m-plus-1 text-[12px] text-on-surface-variant mt-1"
+              >t0001</span
+            >
+          </div>
+        </div>
+      </header>
+      <!-- Main Content Area -->
+      <main
+        class="flex-grow flex flex-col items-center pt-8 px-margin-mobile relative z-10"
+      >
+        <div class="flex flex-col items-center mb-4">
+          <h2 class="font-m-plus-1 text-[16px] text-on-surface-variant mb-2">
+            現在のステータス
+          </h2>
+          <div class="flex items-center gap-4">
+            <div
+              class="w-4 h-4 rounded-full bg-status-ok-border"
+              id="status-indicator-dot"
+            ></div>
+            <h1
+              class="font-m-plus-1 text-[36px] font-bold text-on-surface"
+              id="status-main-text"
+            >
+              質問OK
+            </h1>
+          </div>
+        </div>
+        <!-- Large Vertical Pill Track -->
+        <div class="status-track" id="slider-track">
+          <!-- Animated Circle Indicator -->
+          <div
+            class="status-circle bg-status-ok transform translate-y-[9px]"
+            id="slider-handle"
+          >
+            <span class="slider-text" id="handle-text">質問OK</span>
+          </div>
+          <!-- Clickable Areas -->
+          <div class="absolute inset-0 flex flex-col z-20">
+            <button class="status-button" onclick="setStatus(0)">
+              <span class="slider-text opacity-0" id="bg-text-0">質問OK</span>
+            </button>
+            <button class="status-button" onclick="setStatus(1)">
+              <span class="slider-text" id="bg-text-1">取り込み中</span>
+            </button>
+            <button class="status-button" onclick="setStatus(2)">
+              <span class="slider-text" id="bg-text-2">不在</span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="mt-8 flex items-center justify-center gap-2 text-on-surface-variant opacity-80"
+        >
+          <span
+            class="material-symbols-outlined text-[20px]"
+            data-icon="swap_vert"
+            >swap_vert</span
+          >
+          <p class="font-m-plus-1 text-[14px]">
+            今の状況をタップして切り替えます
+          </p>
+        </div>
+      </main>
+    </div>
+    <script>
+      // Setup initial state (0 = 質問OK, 1 = 取り込み中, 2 = 不在)
+      let currentState = 0;
+      const handle = document.getElementById("slider-handle");
+      const handleText = document.getElementById("handle-text");
+      const statusMainText = document.getElementById("status-main-text");
+      const statusIndicatorDot = document.getElementById(
+        "status-indicator-dot",
+      );
+
+      // Configuration for states
+      const states = [
+        {
+          id: 0,
+          label: "質問OK",
+          bgColor: "bg-[#a7f3d0]", // Tailwind emerald-200 equivalent
+          dotColor: "#10b981", // emerald-500
+        },
+        {
+          id: 1,
+          label: "取り込み中",
+          bgColor: "bg-[#ffedd5]", // orange-100
+          dotColor: "#f97316", // orange-500
+        },
+        {
+          id: 2,
+          label: "不在",
+          bgColor: "bg-[#f3f4f6]", // gray-100
+          dotColor: "#9ca3af", // gray-400
+        },
+      ];
+
+      function updateUI(stateIndex) {
+        // Calculate Y position based on track height (600px) and button height (200px)
+        // Positions: Top = 9px, Middle = 189px (200 - 11), Bottom = 369px (400 - 31)
+        // Exact centering math for 220px circle in 600px track with 3 sections:
+        // Section centers: 100px, 300px, 500px. Circle center = top + 110px.
+        // Tops: 100-110 = -10 (clamp to 9px), 300-110 = 190px, 500-110 = 390px (clamp to 600-220-9 = 371px)
+        const yPositions = [9, 189, 371];
+
+        // Move handle
+        handle.style.transform = `translateY(${yPositions[stateIndex]}px)`;
+
+        // Update handle color & classes
+        handle.className = `status-circle ${states[stateIndex].bgColor} transform transition-all duration-500 cubic-bezier(0.25, 1, 0.5, 1)`;
+        handle.style.transform = `translateY(${yPositions[stateIndex]}px)`;
+
+        // Update texts in the handle and header
+        handleText.textContent = states[stateIndex].label;
+        statusMainText.textContent = states[stateIndex].label;
+        statusIndicatorDot.style.backgroundColor = states[stateIndex].dotColor;
+
+        // Hide the text in the background track where the circle is, show others
+        for (let i = 0; i < 3; i++) {
+          const bgTextEl = document.getElementById(`bg-text-${i}`);
+          if (i === stateIndex) {
+            bgTextEl.style.opacity = "0";
+          } else {
+            bgTextEl.style.opacity = "1";
+          }
+        }
+
+        currentState = stateIndex;
+      }
+
+      function setStatus(index) {
+        if (currentState === index) return;
+        updateUI(index);
+      }
+
+      // Initialize UI
+      document.addEventListener("DOMContentLoaded", () => {
+        // Material Symbols Setup
+        const icons = document.querySelectorAll(".material-symbols-outlined");
+        icons.forEach((icon) => {
+          const iconName = icon.getAttribute("data-icon");
+          if (iconName) {
+            icon.textContent = iconName;
+          }
+        });
+
+        // Set initial state
+        updateUI(currentState);
+      });
+    </script>
+  </body>
+</html>
