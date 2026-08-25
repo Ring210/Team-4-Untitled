@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>先生在室状況・座席表示システム</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Noto Sans JP",
+        "Yu Gothic",
+        sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    #connectionStatus {
+      font-size: 14px;
+      padding: 7px 12px;
+      border-radius: 20px;
+      background: #64748b;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      color: #1e3a8a;
+    }
+
+    /* 座席表 */
+    .seat-map {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .seat {
+      min-height: 150px;
+      border: none;
+      border-radius: 16px;
+      padding: 18px;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+    }
+
+    .seat:hover {
+      transform: translateY(-3px);
+    }
+
+    .seat:active {
+      transform: scale(0.98);
+    }
+
+    .seat.empty {
+      background: #94a3b8;
+    }
+
+    .seat.present {
+      background: #16a34a;
+    }
+
+    .seat.absent {
+      background: #64748b;
+    }
+
+    .seat.question {
+      background: #2563eb;
+    }
+
+    .seat-name {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .seat-status {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .seat-question {
+      margin-top: 8px;
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    /* 先生操作画面 */
+    .teacher-select {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .teacher-select button {
+      padding: 14px;
+      border: 2px solid #cbd5e1;
+      background: white;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .teacher-select button.selected {
+      border-color: #2563eb;
+      background: #dbeafe;
+      font-weight: bold;
+    }
+
+    .status-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .status-buttons button {
+      border: none;
+      border-radius: 12px;
+      padding: 18px 10px;
+      font-size: 17px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+    }
+
+    .btn-present {
+      background: #16a34a;
+    }
+
+    .btn-absent {
+      background: #64748b;
+    }
+
+    .btn-question {
+      background: #2563eb;
+    }
+
+    .info {
+      background: #eff6ff;
+      border-left: 5px solid #2563eb;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .last-update {
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
+    .big-message {
+      text-align: center;
+      font-size: 30px;
+      font-weight: bold;
+      padding: 30px;
+      border-radius: 15px;
+      background: #f8fafc;
+    }
+
+    @media (max-width: 800px) {
+      .seat-map {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .teacher-select {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .status-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🏫 先生在室状況</h1>
+  <div id="connectionStatus">接続中...</div>
+</header>
+
+<main>
+
+  <!-- ========================= -->
+  <!-- 生徒側・表示端末 -->
+  <!-- ========================= -->
+
+  <section id="displayMode" class="panel" style="display:none;">
+
+    <h2>先生の在室状況</h2>
+
+    <div class="info">
+      座席の色を見ることで、先生が在室しているか、
+      質問できるかを確認できます。
+    </div>
+
+    <div id="seatMap" class="seat-map">
+      <!-- JavaScriptで生成 -->
+    </div>
+
+  </section>
+
+
+  <!-- ========================= -->
+  <!-- 先生側 -->
+  <!-- ========================= -->
+
+  <section id="teacherMode" class="panel" style="display:none;">
+
+    <h2>先生用操作画面</h2>
+
+    <div class="info">
+      自分の名前を選択して、現在の状態をタップしてください。
+      変更すると表示端末へリアルタイムで反映されます。
+    </div>
+
+    <h3>先生を選択</h3>
+
+    <div id="teacherSelect" class="teacher-select">
+      <!-- JavaScriptで生成 -->
+    </div>
+
+    <div id="selectedTeacherInfo" class="big-message">
+      先生を選択してください
+    </div>
+
+    <div class="status-buttons">
+
+      <button
+        class="btn-present"
+        onclick="setStatus('present')">
+        🟢 在室
+      </button>
+
+      <button
+        class="btn-question"
+        onclick="setStatus('question')">
+        🔵 在室・質問OK
+      </button>
+
+      <button
+        class="btn-absent"
+        onclick="setStatus('absent')">
+        ⚪ 不在
+      </button>
+
+    </div>
+
+    <div id="lastUpdate" class="last-update">
+      -
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- Firebase -->
+<script type="module">
+
+  /*
+   * ==========================================
+   * Firebase設定
+   * ==========================================
+   *
+   * Firebaseコンソールで取得した値に
+   * 書き換えてください。
+   */
+
+  import {
+    initializeApp
+  } from
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+  import {
+    getDatabase,
+    ref,
+    set,
+    onValue,
+    serverTimestamp
+  } from
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  import {
+    getAuth,
+    signInAnonymously,
+    onAuthStateChanged
+  } from
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+
+  // ★★★ Firebaseの設定をここに入れる ★★★
+
+  const firebaseConfig = {
+
+    apiKey: "ここにAPI_KEY",
+
+    authDomain:
+      "ここにFirebaseのauthDomain",
+
+    databaseURL:
+      "https://ここにプロジェクトID-default-rtdb.firebaseio.com",
+
+    projectId:
+      "ここにprojectId",
+
+    storageBucket:
+      "ここにstorageBucket",
+
+    messagingSenderId:
+      "ここにmessagingSenderId",
+
+    appId:
+      "ここにappId"
+  };
+
+
+  // Firebase初期化
+
+  const app = initializeApp(firebaseConfig);
+
+  const db = getDatabase(app);
+
+  const auth = getAuth(app);
+
+
+  // ==========================================
+  // 先生データ
+  // ==========================================
+
+  const teachers = {
+
+    teacher1: {
+      name: "田中先生",
+      seat: "A-1"
+    },
+
+    teacher2: {
+      name: "佐藤先生",
+      seat: "A-2"
+    },
+
+    teacher3: {
+      name: "鈴木先生",
+      seat: "A-3"
+    },
+
+    teacher4: {
+      name: "高橋先生",
+      seat: "A-4"
+    },
+
+    teacher5: {
+      name: "伊藤先生",
+      seat: "B-1"
+    },
+
+    teacher6: {
+      name: "山田先生",
+      seat: "B-2"
+    },
+
+    teacher7: {
+      name: "渡辺先生",
+      seat: "B-3"
+    },
+
+    teacher8: {
+      name: "中村先生",
+      seat: "B-4"
+    }
+
+  };
+
+
+  let selectedTeacher = null;
+
+
+  // ==========================================
+  // 画面モード判定
+  // ==========================================
+
+  const params =
+    new URLSearchParams(location.search);
+
+  const mode =
+    params.get("mode");
+
+
+  if (mode === "teacher") {
+
+    document
+      .getElementById("teacherMode")
+      .style.display = "block";
+
+    createTeacherButtons();
+
+  } else {
+
+    document
+      .getElementById("displayMode")
+      .style.display = "block";
+
+    createSeatMap();
+
+  }
+
+
+  // ==========================================
+  // Firebase匿名ログイン
+  // ==========================================
+
+  signInAnonymously(auth)
+    .catch(error => {
+
+      console.error(error);
+
+      document
+        .getElementById("connectionStatus")
+        .textContent = "接続エラー";
+
+      document
+        .getElementById("connectionStatus")
+        .style.background = "#dc2626";
+    });
+
+
+  onAuthStateChanged(auth, user => {
+
+    if (user) {
+
+      document
+        .getElementById("connectionStatus")
+        .textContent = "● リアルタイム接続中";
+
+      document
+        .getElementById("connectionStatus")
+        .style.background = "#16a34a";
+
+      startRealtime();
+
+    }
+
+  });
+
+
+  // ==========================================
+  // 先生選択ボタン
+  // ==========================================
+
+  function createTeacherButtons() {
+
+    const container =
+      document.getElementById("teacherSelect");
+
+    Object.entries(teachers).forEach(
+      ([id, teacher]) => {
+
+        const button =
+          document.createElement("button");
+
+        button.textContent =
+          teacher.name;
+
+        button.onclick = () => {
+
+          selectedTeacher = id;
+
+          document
+            .querySelectorAll(
+              "#teacherSelect button"
+            )
+            .forEach(btn => {
+
+              btn.classList.remove("selected");
+
+            });
+
+          button.classList.add("selected");
+
+          showSelectedTeacher();
+
+        };
+
+        container.appendChild(button);
+
+      }
+    );
+
+  }
+
+
+  // ==========================================
+  // 選択中の先生を表示
+  // ==========================================
+
+  function showSelectedTeacher() {
+
+    if (!selectedTeacher) return;
+
+    const teacher =
+      teachers[selectedTeacher];
+
+    document
+      .getElementById("selectedTeacherInfo")
+      .innerHTML = `
+
+        <div>
+          ${teacher.name}
+        </div>
+
+        <div style="
+          font-size:16px;
+          margin-top:8px;
+          color:#64748b;
+        ">
+          座席：${teacher.seat}
+        </div>
+
+      `;
+
+  }
+
+
+  // ==========================================
+  // 状態変更
+  // ==========================================
+
+  window.setStatus = async function(status) {
+
+    if (!selectedTeacher) {
+
+      alert("先に先生を選択してください。");
+
+      return;
+    }
+
+
+    const teacher =
+      teachers[selectedTeacher];
+
+
+    let statusText = "";
+
+    let question = false;
+
+
+    if (status === "present") {
+
+      statusText = "在室";
+      question = false;
+
+    }
+
+    if (status === "question") {
+
+      statusText = "在室";
+      question = true;
+
+    }
+
+    if (status === "absent") {
+
+      statusText = "不在";
+      question = false;
+
+    }
+
+
+    try {
+
+      /*
+       * Firebase Realtime Databaseへ
+       * 最新状態を送信
+       */
+
+      await set(
+
+        ref(
+          db,
+          "teachers/" + selectedTeacher
+        ),
+
+        {
+
+          name: teacher.name,
+
+          seat: teacher.seat,
+
+          status: statusText,
+
+          question: question,
+
+          updatedAt: serverTimestamp()
+
+        }
+
+      );
+
+
+      document
+        .getElementById("lastUpdate")
+        .textContent =
+          "更新しました：" +
+          new Date().toLocaleTimeString("ja-JP");
+
+    }
+
+    catch(error) {
+
+      console.error(error);
+
+      alert(
+        "データの更新に失敗しました。"
+      );
+
+    }
+
+  };
+
+
+  // ==========================================
+  // リアルタイム監視
+  // ==========================================
+
+  function startRealtime() {
+
+    const teachersRef =
+      ref(db, "teachers");
+
+
+    /*
+     * onValue()により、
+     *
+     * 先生側でデータ変更
+     * ↓
+     * Firebase
+     * ↓
+     * 表示端末
+     *
+     * がリアルタイムで更新されます。
+     */
+
+    onValue(
+      teachersRef,
+      snapshot => {
+
+        const data =
+          snapshot.val() || {};
+
+
+        if (mode === "teacher") {
+
+          updateTeacherCurrentStatus(data);
+
+        } else {
+
+          updateDisplay(data);
+
+        }
+
+      },
+
+      error => {
+
+        console.error(error);
+
+        document
+          .getElementById("connectionStatus")
+          .textContent =
+            "データベース接続エラー";
+
+        document
+          .getElementById("connectionStatus")
+          .style.background =
+            "#dc2626";
+
+      }
+    );
+
+  }
+
+
+  // ==========================================
+  // 表示端末の座席表を更新
+  // ==========================================
+
+  function updateDisplay(data) {
+
+    Object.entries(teachers).forEach(
+      ([id, teacher]) => {
+
+        const element =
+          document.getElementById(
+            "seat-" + id
+          );
+
+        if (!element) return;
+
+
+        const teacherData =
+          data[id] || {};
+
+
+        element.className =
+          "seat " +
+          getSeatClass(teacherData);
+
+
+        const statusElement =
+          element.querySelector(
+            ".seat-status"
+          );
+
+        const questionElement =
+          element.querySelector(
+            ".seat-question"
+          );
+
+
+        if (!teacherData.status) {
+
+          statusElement.textContent =
+            "状態未設定";
+
+          questionElement.textContent =
+            "";
+
+          return;
+
+        }
+
+
+        statusElement.textContent =
+          teacherData.status;
+
+
+        if (
+          teacherData.status === "在室" &&
+          teacherData.question === true
+        ) {
+
+          questionElement.textContent =
+            "💬 質問できます";
+
+        }
+
+        else if (
+          teacherData.status === "在室"
+        ) {
+
+          questionElement.textContent =
+            "質問受付停止中";
+
+        }
+
+        else {
+
+          questionElement.textContent =
+            "先生はいません";
+
+        }
+
+      }
+    );
+
+  }
+
+
+  // ==========================================
+  // 座席の色
+  // ==========================================
+
+  function getSeatClass(data) {
+
+    if (!data.status) {
+
+      return "empty";
+
+    }
+
+
+    if (data.status === "不在") {
+
+      return "absent";
+
+    }
+
+
+    if (
+      data.status === "在室" &&
+      data.question === true
+    ) {
+
+      return "question";
+
+    }
+
+
+    return "present";
+
+  }
+
+
+  // ==========================================
+  // 座席表を作成
+  // ==========================================
+
+  function createSeatMap() {
+
+    const map =
+      document.getElementById("seatMap");
+
+
+    Object.entries(teachers).forEach(
+      ([id, teacher]) => {
+
+        const seat =
+          document.createElement("div");
+
+
+        seat.id =
+          "seat-" + id;
+
+
+        seat.className =
+          "seat empty";
+
+
+        seat.innerHTML = `
+
+          <div class="seat-name">
+            ${teacher.name}
+          </div>
+
+          <div style="
+            font-size:14px;
+            margin-bottom:12px;
+          ">
+            座席：${teacher.seat}
+          </div>
+
+          <div class="seat-status">
+            状態未設定
+          </div>
+
+          <div class="seat-question">
+          </div>
+
+        `;
+
+
+        map.appendChild(seat);
+
+      }
+    );
+
+  }
+
+
+  // ==========================================
+  // 先生側：現在の状態を表示
+  // ==========================================
+
+  function updateTeacherCurrentStatus(data) {
+
+    if (!selectedTeacher) return;
+
+
+    const current =
+      data[selectedTeacher];
+
+
+    if (!current) return;
+
+
+    let text =
+      current.status || "状態未設定";
+
+
+    if (
+      current.status === "在室" &&
+      current.question === true
+    ) {
+
+      text +=
+        "<br><span style='color:#2563eb'>" +
+        "💬 質問OK" +
+        "</span>";
+
+    }
+
+
+    document
+      .getElementById("selectedTeacherInfo")
+      .innerHTML = `
+
+        <div>
+          ${teachers[selectedTeacher].name}
+        </div>
+
+        <div style="
+          margin-top:10px;
+          font-size:22px;
+        ">
+          ${text}
+        </div>
+
+      `;
+
+  }
+
+</script>
+
+</body>
+</html>
